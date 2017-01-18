@@ -111,7 +111,7 @@ g2 <- ggplot(final_analysis, aes(Total_spent/(10^7), Total_points, color = TEAM,
     geom_text(aes(label=TEAM),size = 3,vjust=1.5,hjust=-0.17, data = final_analysis[9]) + scale_size(range = c(7,13)) +
     guides(color = FALSE, size = guide_legend(title = "Expenditure Per Point (Thousand)")) + theme_stata() + scale_color_stata()
 
-g2 + xlab("Total Spending (In Crores)") + ylab("MVP Points") + theme(axis.title = element_text(size = 12), axis.title.y = element_text(margin=margin(0,10,0,0)))
+g2 + xlab("Total Spending (In Crores)") + ylab("MVP Points") + ggtitle("IPL Teams Total Biddings vs Points Earned") + theme(axis.title = element_text(size = 12), axis.title.y = element_text(margin=margin(0,10,0,0)), title =  element_text(margin=margin(0,0,10,0)))
 ```
 
 A look at teams getting the most out of their auction bids reveals that new entrants Gujarat Lions have had great returns from their bid players while the other new team Rising Pune Supergiants have had a forgettable first season. Rajasthan Royals have proved that you don't need to spend a lot on players and have made some very smart bids and have got great returns. And not surprisingly Delhi Daredevils have got the least returns as their big bets have failed to give results.
