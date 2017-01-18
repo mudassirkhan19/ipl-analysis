@@ -1,0 +1,136 @@
+---
+title: "IPL Teams Auction Returns"
+author: "Muhammad Mudassir Khan"
+output: 
+    html_document:
+            fig_width : 10
+            fig_height : 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r,message=FALSE,warning=FALSE,include=FALSE}
+## Load Packages
+library(data.table)
+library(ggplot2)
+library(ggthemes)
+library(knitr)
+```
+
+```{r,cache=TRUE,include=FALSE}
+## Read and Clean Data
+
+ipl_auction <- fread("ipl-auction.csv")
+matches <- fread("matches.csv")
+ipl_auction <- ipl_auction[matches,on="PLAYER"]
+source(file = "read_cricsheet_csv.R")
+list_ipl <- readCricsheetCsv(directory = "./csv_files/")
+ipl_data <- list_ipl[[1]]
+ipl_info <- list_ipl[[2]]
+rm(list_ipl)
+
+ipl_data <- ipl_data[L3 == "1st innings" | L3 == "2nd innings"]
+changecols <- setdiff(names(ipl_data),c("L6","L3","batsman_NA","bowler_NA","non_striker_NA","wicket_fielders","wicket_kind","wicket_player_out"))
+ipl_data[, (changecols) := lapply(.SD, as.integer), .SDcols = changecols]
+```
+
+```{r,cache=TRUE,include=FALSE}
+## Calculating MVP score for Players
+source(file = "calculateMvpStats.R")
+mvp_stats <- data.table()
+for (i in 1:nrow(ipl_auction)) {
+    year <- ipl_auction[i]$YEAR
+    player <- ipl_auction[i]$Abbr
+    current <- calculateMvpStats(ipl_data, ipl_info, player, year)
+    mvp_stats <- rbind(mvp_stats,current)
+}
+
+combined_stats <- merge(ipl_auction,mvp_stats,by.x = c("Abbr","YEAR"),by.y = c("Player","Period"))
+combined_stats <- combined_stats[order(-YEAR, PLAYER)]
+combined_stats[, Abbr := NULL]
+names(combined_stats) <- make.names(names(combined_stats))
+setkey(combined_stats,TEAM)
+combined_stats <- combined_stats[!"Pune Warriors"]
+combined_stats[, TEAM := as.factor(TEAM)]
+combined_stats[, PricePerPoint := ifelse(Points == 0,NA,PRICE.PAID/Points)]
+
+HighBids <- head(combined_stats[,.(PLAYER,TEAM,YEAR,PRICE.PAID,Points,PricePerPoint)][order(-PRICE.PAID)],15)
+HighBids[,PRICE.PAID := (PRICE.PAID/10^7)]
+HighBids[, PricePerPoint := paste0(round(PricePerPoint/10^3,0),"K")]
+
+HighPerform <- head(combined_stats[Points>100L][,.(PLAYER,TEAM,YEAR,Fours,Sixes,Wickets,Points,PricePerPoint)][order(PricePerPoint)],15)
+HighPerform[, PricePerPoint := paste0(round(PricePerPoint/10^3,0),"K")]
+
+final_analysis <- combined_stats[,.(Total_spent = sum(PRICE.PAID), Total_points = sum(Points)),by=TEAM]
+final_analysis[, spent_per_point_rounded := paste0(round(Total_spent/(Total_points * 10^3),0),"K")]
+final_analysis[, spent_per_point := Total_spent/Total_points]
+final_analysis[, Total_spent_rounded := round(Total_spent/10^7,1)]
+setcolorder(final_analysis, c("TEAM","Total_spent_rounded","Total_points","spent_per_point_rounded","Total_spent","spent_per_point"))
+setkey(final_analysis, spent_per_point)
+```
+
+## Introduction
+
+The Indian Premier League (IPL) is a professional Twenty20 cricket league in India contested during April and May of every year by franchise teams representing Indian cities. It is the most-attended cricket league in the world and ranks sixth among all sports leagues.
+
+There are currently eight teams playing the IPL with Chennai Super Kings and Rajasthan Royals suspended for two years. A team can  acquire players through five ways: The annual auction, signing domestic players, signing uncapped players, trading players, and signing replacements. The teams can retain a maximum of five players and remaining players have to be auctioned.
+
+The aim of this analysis is to quantify how well have the teams have got returns on their investments for **Auctioned Players** . The analysis uses MVP (most valuable player) points as the performance criteria of a player. The teams bidding efficeincy is judged by how much money they have spent for a point across all auctions. 
+
+The analysis is done only for the year the player has been bought and doesn't include subsequent years' performance of the player if retained by the team.
+
+## Best Performers
+
+A look at the top performers reveals that spinners have provided the most value with Yuzvendra Chahal, Amit Mishra & Pravin Tambe being the standouts and eight of the top 15 players are bowlers. Chahal has been a find for the RCB with him performing even better in subsequent years.
+
+```{r,echo=FALSE}
+kable(HighPerform, col.names = c("Player","Team","Year","Four","Sixes","Wickets","MVP Points","Spent Per Point"),align = 'c',caption = "Best Performing Players (more than 100 Points)")
+```
+
+## Highest Bids
+
+Yuvraj Singh features in three of the top 10 bids as was the most paid cricketer in IPL for 2014 & 2015. DD and RCB are among the big spenders as they hope to get the best players for their team. This makes sense as they have struggled to find performing players in their team and usually don't retain big players as their big bets haven't paid off yet.
+
+```{r,echo=FALSE}
+kable(HighBids, col.names = c("Player","Team","Year","Bid Amount","MVP Points","Spent Per Point"),align = 'c')
+```
+
+## IPL Teams' Price Paid vs MVP score
+
+```{r,fig.align='center',echo=FALSE}
+g1 <- ggplot(combined_stats, aes(PRICE.PAID/10^7, Points,color=TEAM)) + geom_point(size=8) + theme_stata() + scale_color_brewer(palette = "Spectral")
+
+g1 + xlab("Bid Price (In Crores)") + ylab("MVP Points") + ggtitle("Bid Amount vs MVP Points of Players bid by IPL teams") + theme(axis.title = element_text(size = 12), axis.title.y = element_text(margin=margin(0,10,0,0)), title =  element_text(margin=margin(0,0,10,0)))
+```
+
+The graph shows that Delhi daredevils and Royal Challengers Bangalore occupy the high bid range and it further illustrates that DD haven't got great results with their high bids.
+
+```{r,echo=FALSE,fig.align='center'}
+g2 <- ggplot(final_analysis, aes(Total_spent/(10^7), Total_points, color = TEAM, size = (spent_per_point/10^3), label = TEAM)) + geom_point() + 
+    geom_text(aes(label=TEAM),size = 3,vjust=2.5,hjust=-0.1, data = final_analysis[1:8]) +
+    geom_text(aes(label=TEAM),size = 3,vjust=3,hjust=1, data = final_analysis[10]) + 
+    geom_text(aes(label=TEAM),size = 3,vjust=1.5,hjust=-0.17, data = final_analysis[9]) + scale_size(range = c(7,13)) +
+    guides(color = FALSE, size = guide_legend(title = "Expenditure Per Point (Thousand)")) + theme_stata() + scale_color_stata()
+
+g2 + xlab("Total Spending (In Crores)") + ylab("MVP Points") + theme(axis.title = element_text(size = 12), axis.title.y = element_text(margin=margin(0,10,0,0)))
+```
+
+A look at teams getting the most out of their auction bids reveals that new entrants Gujarat Lions have had great returns from their bid players while the other new team Rising Pune Supergiants have had a forgettable first season. Rajasthan Royals have proved that you don't need to spend a lot on players and have made some very smart bids and have got great returns. And not surprisingly Delhi Daredevils have got the least returns as their big bets have failed to give results.
+
+```{r,echo=FALSE}
+kable(final_analysis[,c(1:4),with=F], col.names = c("Team","Total Bid Value (Crores)","Total MVP Points","Amount Spent Per Point"),align = 'c')
+```
+
+## Appendix
+
+### MVP Points Calculation
+* 2.5 points for each four
+
+* 3.5 points for each six
+
+* 3.5 points for each wicket taken
+
+* 1 point for each dot ball bowled
+
+* 2.5 points for each catch or stumping taken
