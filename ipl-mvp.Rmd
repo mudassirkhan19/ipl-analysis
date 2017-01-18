@@ -55,7 +55,7 @@ combined_stats <- combined_stats[!"Pune Warriors"]
 combined_stats[, TEAM := as.factor(TEAM)]
 combined_stats[, PricePerPoint := ifelse(Points == 0,NA,PRICE.PAID/Points)]
 
-HighBids <- head(combined_stats[,.(PLAYER,TEAM,YEAR,PRICE.PAID,Points,PricePerPoint)][order(-PRICE.PAID)],15)
+HighBids <- head(combined_stats[,.(PLAYER,TEAM,YEAR,PRICE.PAID,Points,PricePerPoint)][order(-PRICE.PAID)],10)
 HighBids[,PRICE.PAID := (PRICE.PAID/10^7)]
 HighBids[, PricePerPoint := paste0(round(PricePerPoint/10^3,0),"K")]
 
@@ -90,7 +90,7 @@ kable(HighPerform, col.names = c("Player","Team","Year","Four","Sixes","Wickets"
 
 ## Highest Bids
 
-Yuvraj Singh features in three of the top 10 bids as was the most paid cricketer in IPL for 2014 & 2015. DD and RCB are among the big spenders as they hope to get the best players for their team. This makes sense as they have struggled to find performing players in their team and usually don't retain big players as their big bets haven't paid off yet.
+Yuvraj Singh features in three of the top 10 bids as was the most paid cricketer in IPL for 2014 & 2015. DD and RCB are among the big spenders as they hope to get the best players for their team. This makes sense as DD have struggled to find performing players in their team and usually don't retain big players as their big bets haven't paid off yet.
 
 ```{r,echo=FALSE}
 kable(HighBids, col.names = c("Player","Team","Year","Bid Amount","MVP Points","Spent Per Point"),align = 'c')
