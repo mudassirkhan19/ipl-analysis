@@ -70,15 +70,13 @@ setcolorder(final_analysis, c("TEAM","Total_spent_rounded","Total_points","spent
 setkey(final_analysis, spent_per_point)
 ```
 
-## Introduction
-
 The Indian Premier League (IPL) is a professional Twenty20 cricket league in India contested during April and May of every year by franchise teams representing Indian cities. It is the most-attended cricket league in the world and ranks sixth among all sports leagues.
 
 There are currently eight teams playing the IPL with Chennai Super Kings and Rajasthan Royals suspended for two years. A team can  acquire players through five ways: The annual auction, signing domestic players, signing uncapped players, trading players, and signing replacements. The teams can retain a maximum of five players and remaining players have to be auctioned.
 
 The aim of this analysis is to quantify how well have the teams have got returns on their investments for **Auctioned Players** . The analysis uses MVP (most valuable player) points as the performance criteria of a player. The teams bidding efficeincy is judged by how much money they have spent for a point across all auctions. 
 
-The analysis is done only for the year the player has been bought and doesn't include subsequent years' performance of the player if retained by the team.
+The analysis is done only for the year the player has been bought and doesn't include subsequent years' performance of the player if retained by the team. The time period for analysis is between 2013-2016.
 
 ## Best Performers
 
